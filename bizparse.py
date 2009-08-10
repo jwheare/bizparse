@@ -1,11 +1,50 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
+"""
+bizparse.py
+
+A scraper for parsing the House of Commons Future Business pages
+http://www.publications.parliament.uk/pa/cm/cmfbusi/fbusi.htm
+
+--------
+
+Copyright (c) James Wheare
+All rights reserved.
+ 
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+ 
+    1. Redistributions of source code must retain the above copyright notice, 
+       this list of conditions and the following disclaimer.
+    
+    2. Redistributions in binary form must reproduce the above copyright 
+       notice, this list of conditions and the following disclaimer in the
+       documentation and/or other materials provided with the distribution.
+ 
+    3. Neither the name of James Wheare nor the names of its contributors may be used
+       to endorse or promote products derived from this software without
+       specific prior written permission.
+ 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+"""
+
 import urllib2
 import re
 import sys
 import datetime, time
 from BeautifulSoup import BeautifulSoup as BS
-from xml.etree.cElementTree import Element, SubElement, ElementTree
+from xml.etree import cElementTree as ET
+from xml.dom import minidom
 
 WHITESPACE_RE = re.compile(u'\s+')
 COMMITTEE_RE = re.compile(u'(?P<amended>As|Not) amended in the Public Bill Committee, to be considered.')
@@ -275,7 +314,7 @@ if __name__ == '__main__':
     parser = BusinessParser()
     future_biz = parser.parse_a()
     # <futurebusiness @url @fetched @session-start @session-end @part>
-    root_node = Element('futurebusiness')
+    root_node = ET.Element('futurebusiness')
     print u'URL: %s' % parser.url
     root_node.set('url', parser.url)
     print u'Date fetched: %s' % parser.fetched
@@ -288,55 +327,56 @@ if __name__ == '__main__':
     root_node.set('part', future_biz.part)
     print u'Period ending: %s' % future_biz.period.ending
     # - <title>
-    title_node = SubElement(root_node, 'title')
+    title_node = ET.SubElement(root_node, 'title')
     title_node.text = future_biz.period.title
     # - <title>
-    subtitle_node = SubElement(root_node, 'subtitle')
+    subtitle_node = ET.SubElement(root_node, 'subtitle')
     subtitle_node.text = future_biz.period.subtitle
     # - <period @ending>
-    period_node = SubElement(root_node, 'period')
+    period_node = ET.SubElement(root_node, 'period')
     period_node.set('ending', future_biz.period.ending.strftime('%Y-%m-%d'))
     for day in future_biz.period.days:
         print u'========'
         # -- <day @date>
-        day_node = SubElement(period_node, 'day')
+        day_node = ET.SubElement(period_node, 'day')
         print day.date
         day_node.set('date', day.date.strftime('%Y-%m-%d'))
         for item in day.business:
             # --- <item [@bills]>
-            item_node = SubElement(day_node, 'item')
+            item_node = ET.SubElement(day_node, 'item')
             print item.__unicode__()
             # ---- <text>
-            item_text_node = SubElement(item_node, 'text')
+            item_text_node = ET.SubElement(item_node, 'text')
             item_text_node.text = item.text
             if item.bills:
                 item_node.set('bills', str(len(item.bills)))
                 # ---- <bills>
-                bills_node = SubElement(item_node, 'bills')
+                bills_node = ET.SubElement(item_node, 'bills')
                 for bill in item.bills:
                     print u'----'
                     print bill.__unicode__()
                     # ----- <bill @house [@adjourned]>
-                    bill_node = SubElement(bills_node, 'bill')
+                    bill_node = ET.SubElement(bills_node, 'bill')
                     bill_node.set('house', bill.house)
                     if bill.adjourned:
                         bill_node.set('adjourned', bill.adjourned.strftime('%Y-%m-%d'))
                     # ------ <name>
-                    bill_name_node = SubElement(bill_node, 'name')
+                    bill_name_node = ET.SubElement(bill_node, 'name')
                     bill_name_node.text = bill.name
                     # ------ <member>
-                    bill_member_node = SubElement(bill_node, 'member')
+                    bill_member_node = ET.SubElement(bill_node, 'member')
                     bill_member_node.text = bill.member
                     # ------ <stage [@amended]>
-                    bill_stage_node = SubElement(bill_node, 'stage')
+                    bill_stage_node = ET.SubElement(bill_node, 'stage')
                     bill_stage_node.text = bill.stage
                     if  bill.committee_amended:
                         bill_stage_node.set('amended', 'committee')
                     if bill.motion:
                         # [------ <motion>]
-                        bill_motion_node = SubElement(bill_node, 'motion')
+                        bill_motion_node = ET.SubElement(bill_node, 'motion')
                         bill_motion_node.text = bill.motion
                 print u'----'
-    xml_doc = ElementTree(root_node)
     outfile = open('bizparse.xml', 'w')
+    xml_doc = ET.ElementTree(root_node)
     xml_doc.write(outfile)
+    outfile.close()
