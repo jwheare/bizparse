@@ -377,6 +377,7 @@ if __name__ == '__main__':
                         bill_motion_node.text = bill.motion
                 print u'----'
     outfile = open('bizparse.xml', 'w')
-    xml_doc = ET.ElementTree(root_node)
-    xml_doc.write(outfile)
+    # For human readable XML
+    outfile.write(BS(ET.tostring(root_node)).prettify())
+    # outfile.write(ET.tostring(root_node))
     outfile.close()
