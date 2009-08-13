@@ -7,6 +7,13 @@ bizparse.py
 A scraper for parsing the House of Commons Future Business pages
 http://www.publications.parliament.uk/pa/cm/cmfbusi/fbusi.htm
 
+Usage:
+
+./bizparse.py
+
+Writes an XML file to bizparseYYYY-MM-DD.xml for the period ending date.
+Ouputs human readable debug logging for the data extracted to stdout
+
 --------
 
 Copyright (c) James Wheare
@@ -376,7 +383,7 @@ if __name__ == '__main__':
                         bill_motion_node = ET.SubElement(bill_node, 'motion')
                         bill_motion_node.text = bill.motion
                 print u'----'
-    outfile = open('bizparse.xml', 'w')
+    outfile = open('bizparse%s.xml' % future_biz.period.ending.strftime('%Y-%m-%d'), 'w')
     # For human readable XML
     outfile.write(BS(ET.tostring(root_node)).prettify())
     # outfile.write(ET.tostring(root_node))
