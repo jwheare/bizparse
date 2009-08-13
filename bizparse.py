@@ -296,7 +296,7 @@ class BusinessParser:
         part = 'business'
         self.url = self.get_url(part)
         self.fetched = datetime.date.today()
-        doc = self.get_doc(part)
+        doc = self.get_doc(part) # Set second argument to False to use remote html
         content = doc.find('div', id='maincontent')
         preamble = content.find('p').find('table')
         business = preamble.findNextSibling('table')
